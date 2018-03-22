@@ -52,6 +52,7 @@ DECLARE_CALL_TYPE(char)
 DECLARE_CALL_TYPE(bool)
 DECLARE_CALL_TYPE(id)
 DECLARE_CALL_TYPE(CGRect)
+DECLARE_CALL_TYPE(CGPoint)
 
 @end
 
@@ -85,13 +86,14 @@ DEFINE_CALL_METHOD(char)
 DEFINE_CALL_METHOD(bool)
 DEFINE_CALL_METHOD(id)
 DEFINE_CALL_METHOD(CGRect)
+DEFINE_CALL_METHOD(CGPoint)
 
 @end
 
 // MARK: - Testing
 
 /**
- Define a javascript test for a given type.
+ Macro to define a javascript test for a given type.
  
  We define a javascript function which takes two arguments and applies an operation to them.
  This is passed to the example API as a block, and then a method on the API is called, which
@@ -103,12 +105,13 @@ DEFINE_CALL_METHOD(CGRect)
 
 #define TEST(_type_, _code_, _arg1_, _arg2_) \
 do { \
-const char* _type_ ## sig = [JSBlock signatureForBlock:^ _type_(_type_ v1, _type_ v2) { return v1; }]; \
-[self.context setObject:[JSValue valueWithObject:[NSString stringWithCString:_type_ ## sig encoding:NSASCIIStringEncoding] inContext:self.context] forKeyedSubscript:@"" #_type_ "BlockSignature"]; \
-NSString* script = @QUOTE( \
-var block = JSBlock.blockWithSignatureFunction(_type_ ## BlockSignature, function(x,y) { return _code_; }); \
-var someAPI = ExampleAPI.exampleWithBlock(block); \
-console.log(someAPI.callBlockWith ## _type_ ## And ## _type_(_arg1_, _arg2_)); \
+    const char* _type_ ## sig = [JSBlock signatureForBlock:^ _type_(_type_ v1, _type_ v2) { return v1; }]; \
+    [self.context setObject:[JSValue valueWithObject:[NSString stringWithCString:_type_ ## sig encoding:NSASCIIStringEncoding] inContext:self.context] forKeyedSubscript:@"" #_type_ "BlockSignature"]; \
+    NSString* script = @QUOTE( \
+    var block = JSBlock.blockWithSignatureFunction(_type_ ## BlockSignature, function(x,y) { _code_; }); \
+    var someAPI = ExampleAPI.exampleWithBlock(block); \
+    var result = someAPI.callBlockWith ## _type_ ## And ## _type_(_arg1_, _arg2_); \
+    console.log(result); \
 ); \
 [self.context evaluateScript:script]; \
 } while(0)
@@ -136,13 +139,8 @@ console.log(someAPI.callBlockWith ## _type_ ## And ## _type_(_arg1_, _arg2_)); \
     // install a console.log handler to capture output
     NSMutableString* buffer = [NSMutableString new];
     context[@"console"][@"log"] = ^(JSValue* value) {
-        JSValueRef* exception = NULL;
-        JSStringRef string = JSValueToStringCopy(value.context.JSGlobalContextRef, value.JSValueRef, exception);
-        if (exception == NULL) {
-            NSString* value = CFBridgingRelease(JSStringCopyCFString(NULL, string));
-            NSLog(@"js> %@", value);
-            [buffer appendFormat:@"%@\n", value];
-        }
+        NSLog(@"js> %@", value);
+        [buffer appendFormat:@"%@\n", value.toString];
     };
     
     self.context = context;
@@ -153,38 +151,46 @@ console.log(someAPI.callBlockWith ## _type_ ## And ## _type_(_arg1_, _arg2_)); \
     return [_buffer stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
-- (void)makeContext {
-}
-
 - (void)testDouble {
-    TEST(double, x*y, 1.23, 4.0);
+    TEST(double, return x*y, 1.23, 4.0);
     XCTAssertEqualObjects(self.trimmedBuffer, @"4.92");
 }
 
 - (void)testInt {
-    TEST(int, x+y, -2, -4);
+    TEST(int, return x+y, -2, -4);
     XCTAssertEqualObjects(self.trimmedBuffer, @"-6");
 }
 
 - (void)testUInt {
-    TEST(uint, x+y, 2, 4);
+    TEST(uint, return x+y, 2, 4);
     XCTAssertEqualObjects(self.trimmedBuffer, @"6");
 }
 
 - (void)testBool {
-    TEST(bool, (x && y), true, true);
-    TEST(bool, (x && y), false, true);
+    TEST(bool, return (x && y), true, true);
+    TEST(bool, return (x && y), false, true);
     XCTAssertEqualObjects(self.trimmedBuffer, @"true\nfalse");
 }
 
 - (void)testString {
-    TEST(id, x + y, "test1", "test2");
+    TEST(id, return x + y, "test1", "test2");
     XCTAssertEqualObjects(self.trimmedBuffer, @"test1test2");
 }
 
-- (void)testStruct {
-    TEST(CGRect, x + y, ({x:1, y:2}), ({x:1, y:2}));
-    XCTAssertEqualObjects(self.trimmedBuffer, @"[object Object]");
+- (void)testRect {
+    TEST(CGRect, return ({x:x.x + y.x, y:x.y + y.y, width:x.width + y.width, height:x.height+y.height}), ({x:1, y:2, width:10, height:10}), ({x:4, y:8, width:20, height:20}));
+    [self.context evaluateScript:@"console.log(result.x);"];
+    [self.context evaluateScript:@"console.log(result.y);"];
+    [self.context evaluateScript:@"console.log(result.width);"];
+    [self.context evaluateScript:@"console.log(result.height);"];
+    XCTAssertEqualObjects(self.trimmedBuffer, @"[object Object]\n5\n10\n30\n30");
+}
+
+- (void)testPoint {
+    TEST(CGPoint, return ({x:x.x + y.x, y:x.y + y.y}), ({x:1, y:2}), ({x:4, y:8}));
+    [self.context evaluateScript:@"console.log(result.x);"];
+    [self.context evaluateScript:@"console.log(result.y);"];
+    XCTAssertEqualObjects(self.trimmedBuffer, @"[object Object]\n5\n10");
 }
 
 

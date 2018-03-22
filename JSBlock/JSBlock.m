@@ -57,6 +57,7 @@ INVOKE_METHOD_RETURNING(char);
 INVOKE_METHOD_RETURNING(bool);
 INVOKE_METHOD_RETURNING(id);
 INVOKE_METHOD_RETURNING(CGRect);
+INVOKE_METHOD_RETURNING(CGPoint);
 @end
 
 
@@ -86,6 +87,7 @@ INVOKE_BLOCK_RETURNING(char)
 INVOKE_BLOCK_RETURNING(bool)
 INVOKE_BLOCK_RETURNING(id)
 INVOKE_BLOCK_RETURNING(CGRect)
+INVOKE_BLOCK_RETURNING(CGPoint)
 
 #define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## InvokeBlock; break
 
@@ -128,14 +130,27 @@ INVOKE_BLOCK_RETURNING(CGRect)
         _descriptor->size = class_getInstanceSize([self class]);
         _descriptor->rest[0] = (void *) signature;
         _signature = [NSMethodSignature signatureWithObjCTypes:signature];
-        switch (_signature.methodReturnType[0]) {
+        const char* type = _signature.methodReturnType;
+        switch (type[0]) {
                 INVOKE_CASE('d', double);
                 INVOKE_CASE('i', int);
                 INVOKE_CASE('I', uint);
                 INVOKE_CASE('c', char);
                 INVOKE_CASE('B', bool);
                 INVOKE_CASE('@', id);
-                INVOKE_CASE('{', CGRect);
+//                INVOKE_CASE('{', CGRect);
+                
+            case '{':
+                if (strcmp(type, "{CGRect={CGPoint=dd}{CGSize=dd}}") == 0) {
+                    _invoke = (IMP)CGRectInvokeBlock;
+                    break;
+                } else if (strcmp(type, "{CGPoint=dd}") == 0) {
+                    _invoke = (IMP)CGPointInvokeBlock;
+                    break;
+                } else {
+                    NSLog(@"generic structures not handled yet");
+                }
+                break;
             default:
                 _invoke = (IMP)InvokeBlock;
         }
@@ -179,6 +194,14 @@ INVOKE_BLOCK_RETURNING(CGRect)
             bool value = va_arg(args, int) != 0;
             [jsArgs addObject:[JSValue valueWithBool:value inContext:context]];
             NSLog(@"arg #%ld %s", n, value ? "true" : "false");
+        } else if ([type isEqualToString:@"{CGRect={CGPoint=dd}{CGSize=dd}}"]) {
+            CGRect value = va_arg(args, CGRect);
+            [jsArgs addObject:[JSValue valueWithRect:value inContext:context]];
+            NSLog(@"arg #%ld %@", n, NSStringFromRect(value));
+        } else if ([type isEqualToString:@"{CGPoint=dd}"]) {
+            CGPoint value = va_arg(args, CGPoint);
+            [jsArgs addObject:[JSValue valueWithPoint:value inContext:context]];
+            NSLog(@"arg #%ld %@", n, NSStringFromPoint(value));
         } else if ([type characterAtIndex:0] == '@') {
             id value = va_arg(args, id);
             [jsArgs addObject:[JSValue valueWithObject:value inContext:context]];
@@ -231,10 +254,14 @@ INVOKE_BLOCK_RETURNING(CGRect)
     return result.toObject;
 }
 
-
 - (CGRect)CGRectInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
     JSValue* result = [self _invokeWithSignature:signature arguments:args];
     return result.toRect;
+}
+
+- (CGPoint)CGPointInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
+    JSValue* result = [self _invokeWithSignature:signature arguments:args];
+    return result.toPoint;
 }
 
 @end
