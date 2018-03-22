@@ -104,6 +104,15 @@ DEFINE_CALL_METHOD(CGRect)
 
 @end
 
+NSMutableString* PrintBuffer = nil;
+
+static void resetPrintBuffer(void) {
+    PrintBuffer = [NSMutableString new];
+}
+
+static NSString* printBuffer(void) {
+    return [PrintBuffer stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
 
 static JSValueRef printCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception) {
     for (NSUInteger n = 0; n < argumentCount; ++n) {
@@ -111,6 +120,7 @@ static JSValueRef printCallback(JSContextRef context, JSObjectRef function, JSOb
         if (*exception == NULL) {
             NSString* value = CFBridgingRelease(JSStringCopyCFString(NULL, string));
             NSLog(@"js> %@", value);
+            [PrintBuffer appendFormat:@"%@\n", value];
         }
     }
     return JSValueMakeNull(context);
@@ -137,13 +147,6 @@ static JSContext* MakeTestContext(void) {
 void test(void) {
     JSContext* context = MakeTestContext();
     
-    TEST(double, x*y, 1.23, 4.0);
-    TEST(int, x+y, -2, -4);
-    TEST(uint, x+y, 2, 4);
-    TEST(bool, (x && y), true, true);
-    TEST(bool, (x && y), false, true);
-    TEST(id, x + y, "test1", "test2");
-    TEST(CGRect, x + y, ({x:1, y:2}), ({x:1, y:2}));
     
     NSString* script = @QUOTE(
                               var items = NSArray.arrayWithContentsOfArray([1,2]);
@@ -161,25 +164,45 @@ void test(void) {
 @implementation JSBlockTests
 
 - (void)setUp {
-    [super setUp];
-    // Put setup code here. This method is called before the invocation of each test method in the class.
+    resetPrintBuffer();
 }
 
-- (void)tearDown {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-    [super tearDown];
+- (void)testDouble {
+    JSContext* context = MakeTestContext();
+    TEST(double, x*y, 1.23, 4.0);
+    XCTAssertEqualObjects(printBuffer(), @"4.92");
 }
 
-- (void)testExample {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+- (void)testInt {
+    JSContext* context = MakeTestContext();
+    TEST(int, x+y, -2, -4);
+    XCTAssertEqualObjects(printBuffer(), @"-6");
 }
 
-- (void)testPerformanceExample {
-    // This is an example of a performance test case.
-    [self measureBlock:^{
-        // Put the code you want to measure the time of here.
-    }];
+- (void)testUInt {
+    JSContext* context = MakeTestContext();
+    TEST(uint, x+y, 2, 4);
+    XCTAssertEqualObjects(printBuffer(), @"6");
 }
+
+- (void)testBool {
+    JSContext* context = MakeTestContext();
+    TEST(bool, (x && y), true, true);
+    TEST(bool, (x && y), false, true);
+    XCTAssertEqualObjects(printBuffer(), @"true\nfalse");
+}
+
+- (void)testString {
+    JSContext* context = MakeTestContext();
+    TEST(id, x + y, "test1", "test2");
+    XCTAssertEqualObjects(printBuffer(), @"test1test2");
+}
+
+- (void)testStruct {
+    JSContext* context = MakeTestContext();
+    TEST(CGRect, x + y, ({x:1, y:2}), ({x:1, y:2}));
+    XCTAssertEqualObjects(printBuffer(), @"[object Object]");
+}
+
 
 @end
