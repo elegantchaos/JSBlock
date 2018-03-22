@@ -32,7 +32,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "JSBlock::JSBlockTests"
+               BlueprintIdentifier = "2252FD1020641D5500871CE4"
                BuildableName = "JSBlockTests.xctest"
                BlueprintName = "JSBlockTests"
                ReferencedContainer = "container:JSBlock.xcodeproj">
