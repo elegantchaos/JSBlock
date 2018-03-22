@@ -1,9 +1,8 @@
-//
-//  JSBlock.h
-//
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 19/03/2018.
-//  Copyright © 2018 Elegant Chaos. All rights reserved.
-//
+//  All code (c) 2018 - present day, Elegant Chaos Limited.
+//  For licensing terms, see http://elegantchaos.com/license/liberal/.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 @import JavaScriptCore;
 

@@ -1,13 +1,13 @@
-//
-//  JSBlock.m
-//  UniversalBlock
-//
-//  We're relying on some Block API knowledge here: http://releases.llvm.org/3.8.1/tools/docs/Block-ABI-Apple.html
-//  With thanks also to Mike Ash for some important nuggets contained in: https://www.mikeash.com/pyblog/friday-qa-2011-05-06-a-tour-of-mablockclosure.html
-//
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 19/03/2018.
-//  Copyright © 2018 Elegant Chaos. All rights reserved.
+//  All code (c) 2018 - present day, Elegant Chaos Limited.
+//  For licensing terms, see http://elegantchaos.com/license/liberal/.
 //
+//  We're relying on some Block API knowledge here:
+//  http://releases.llvm.org/3.8.1/tools/docs/Block-ABI-Apple.html
+//  With thanks also to Mike Ash for some important nuggets contained
+//  in: https://www.mikeash.com/pyblog/friday-qa-2011-05-06-a-tour-of-mablockclosure.html
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #import "JSBlock.h"
 
