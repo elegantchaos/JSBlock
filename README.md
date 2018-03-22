@@ -47,6 +47,8 @@ I've tested it as a proof of concept in a javascript context, but not currently 
 
 ### Caveats
 
+The code is rough at the moment, un-optimised, hacks all over the place, and generally not production-ready.
+
 Fairly obviously, the JavaScript context that your function was defined in still has to exist at the point that the block is called.
 
 Memory management may be a little sketchy at this point. I know that JavaScriptCore itself originally had an implementation of something like
