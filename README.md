@@ -47,9 +47,13 @@ I've tested it as a proof of concept in a javascript context, but not currently 
 
 ### Caveats
 
-The proof of concept handles accepting and returning simple types - int, double, bool - and objects, including strings.
+Fairly obviously, the JavaScript context that your function was defined in still has to exist at the point that the block is called.
 
-It doesn't yet deal with complex arguments such as structures. In think in theory that support for them should be possible.
+Memory management may be a little sketchy at this point. I know that JavaScriptCore itself originally had an implementation of something like
+this, but [it was removed](https://bugs.webkit.org/show_bug.cgi?id=107836) due to problems with the memory management. I suspect that was
+because they were trying to solve every case in a way which we're not doing here, but it's still a cause for caution.
+
+The proof of concept handles accepting and returning simple types - int, double, bool - and objects, including strings. It doesn't yet deal with complex arguments such as structures. In think in theory that support for them should be possible.
 
 I might try to add some of them, but it involves a bit of work and I did this mostly to show that it can be done. I'm not really looking
 for work right now but if you're desperate enough to get this working that you want to pay me to do it, I might be persuadable, so by
