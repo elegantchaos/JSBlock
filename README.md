@@ -1,3 +1,59 @@
 # JSBlock
 
-A description of this package.
+This is a proof of concept for a generic stand-in block for use with JavaScript.
+
+I wrote it with Sketch in mind, but there are other use cases.
+
+The block can be obtained from JavaScript by calling:
+
+```javascript
+JSBlock.blockWithSignatureFunction(signature, function);
+```
+
+where `signature` is the @encode-style signature of the block, and `function` is a javascript function.
+
+You then pass the block to whatever API needs it. When that API calls the block, your javascript function will be invoked.
+
+For example:
+
+```javascript
+
+// get a block with the signature double(^MyBlock)(double,double), 
+// which calls a function to multiply two doubles
+var block = JSBlock.blockWithSignatureFunction("d24@?0d8d16", function(x,y) {
+    return x * y;
+});
+```
+
+
+
+### How It Works
+
+I'm using some internal knowledge about the block ABI to make a fake block which will call a custom function when it is invoked. 
+
+Hat-tip to Mike Ash for some useful information that pointed me in the right direction. 
+
+We then use knowledge of the signature to pull the arguments out one by one, and use JavaScriptCore to turn them into JS values and to then call the supplied Javascript function with them.
+
+Finally we capture the javascript return value, turn it back into whatever the block is supposed to be returning, and return it.
+
+### Using It
+
+This is standalone code - it's not linked into Mocha, or Sketch, or anything else.
+
+To use it with Sketch right now you need to be able to include the JSBlock source into your own custom Objective-C library which you then need to load from the plugin.
+
+I've tested it as a proof of concept in a javascript context, but not currently within Sketch.
+
+### Caveats
+
+The proof of concept handles accepting and returning simple types - int, double, bool - and objects, including strings.
+
+It doesn't yet deal with complex arguments such as structures. In think in theory that support for them should be possible.
+
+I might try to add some of them, but it involves a bit of work and I did this mostly to show that it can be done. I'm not really looking
+for work right now but if you're desperate enough to get this working that you want to pay me to do it, I might be persuadable, so by
+all means get in touch.
+
+
+
