@@ -196,7 +196,9 @@ INVOKE_BLOCK_RETURNING(CGRect)
 
 - (void)voidInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
     JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    NSLog(@"Result: %@", result);
+    if (result && !result.isNull) {
+        NSLog(@"Unexpected result: %@", result);
+    }
 }
 
 - (double)doubleInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {

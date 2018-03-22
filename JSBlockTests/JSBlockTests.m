@@ -144,19 +144,6 @@ static JSContext* MakeTestContext(void) {
     return context;
 }
 
-void test(void) {
-    JSContext* context = MakeTestContext();
-    
-    
-    NSString* script = @QUOTE(
-                              var items = NSArray.arrayWithContentsOfArray([1,2]);
-                              print(items);
-                              );
-    [context evaluateScript:script];
-    
-}
-
-
 @interface JSBlockTests : XCTestCase
 
 @end
