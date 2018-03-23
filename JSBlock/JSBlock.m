@@ -45,23 +45,14 @@ enum {
 
 // MARK: - Invocation
 
-
 /**
- We use a few different invocation functions - one for each return type - as a quick
- and easy way of getting the compiler to put the right sized return value onto the stack.
+ The higher level invocation function extracts the arguments, converts
+ them to JSValues, and calls the JS function.
  
- This isn't scalable for generic structs, since there are an infinite variety of them and
- we can't declare a function for every one.
- 
- In theory we ought to be able to use the signature plus knowledge of the ABI to figure out
- where the return value is supposed to go (registers, stack, or a bit of both) and how big it is.
- We could then execute a few assembler instructions to put it into the right place.
- 
- This might allow us to have a single invocation function to handle all cases.
- 
+ We return the result as another JSValue.
  */
 
-static JSValue* invoke(JSValue* function, NSMethodSignature* signature, va_list args) {
+static JSValue* jsInvoke(JSValue* function, NSMethodSignature* signature, va_list args) {
     JSContext* context = function.context;
     NSUInteger count = [signature numberOfArguments];
     NSMutableArray* jsArgs = [NSMutableArray new];
@@ -110,31 +101,49 @@ static JSValue* invoke(JSValue* function, NSMethodSignature* signature, va_list 
     return result;
 }
 
+/**
+ Helpers to convert the return value to the correct type.
+ */
 
-static inline double returnAsdouble(JSValue* value) { return value.toDouble; }
-static inline int returnAsint(JSValue* value) { return value.toInt32; }
-static inline uint returnAsuint(JSValue* value) { return value.toUInt32; }
-static inline char returnAschar(JSValue* value) { return value.toInt32; }
-static inline bool returnAsbool(JSValue* value) { return value.toBool; }
-static inline id returnAsid(JSValue* value) { return value.toObject; }
-static inline CGRect returnAsCGRect(JSValue* value) { return value.toRect; }
-static inline CGPoint returnAsCGPoint(JSValue* value) { return value.toPoint; }
+static inline double return_double(JSValue* value) { return value.toDouble; }
+static inline int return_int(JSValue* value) { return value.toInt32; }
+static inline uint return_uint(JSValue* value) { return value.toUInt32; }
+static inline char return_char(JSValue* value) { return value.toInt32; }
+static inline bool return_bool(JSValue* value) { return value.toBool; }
+static inline id return_id(JSValue* value) { return value.toObject; }
+static inline CGRect return_CGRect(JSValue* value) { return value.toRect; }
+static inline CGPoint return_CGPoint(JSValue* value) { return value.toPoint; }
 
 
-static void InvokeBlock(JSBlock* block, ...) {
+/**
+ We use a few different low level invocation functions - one for each return type - as a quick
+ and easy way of getting the compiler to put the right sized return value onto the stack.
+ 
+ This isn't scalable for generic structs, since there are an infinite variety of them and
+ we can't declare a function for every one.
+ 
+ In theory we ought to be able to use the signature plus knowledge of the ABI to figure out
+ where the return value is supposed to go (registers, stack, or a bit of both) and how big it is.
+ We could then execute a few assembler instructions to put it into the right place.
+ 
+ This might allow us to have a single invocation function to handle all cases.
+ 
+ */
+
+static void invoke(JSBlock* block, ...) {
     va_list args;
     va_start(args, block);
-    invoke(block.function, block.signature, args);
+    jsInvoke(block.function, block.signature, args);
     va_end(args);
 }
 
 #define INVOKE_BLOCK_RETURNING(_type_) \
-static _type_ _type_ ## InvokeBlock(JSBlock* block, ...) { \
+static _type_ _type_ ## _invoke(JSBlock* block, ...) { \
 va_list args; \
 va_start(args, block); \
-JSValue* jsResult = invoke(block.function, block.signature, args); \
+JSValue* jsResult = jsInvoke(block.function, block.signature, args); \
 va_end(args); \
-return returnAs ## _type_(jsResult); \
+return return_ ## _type_(jsResult); \
 } \
 
 INVOKE_BLOCK_RETURNING(double)
@@ -146,7 +155,7 @@ INVOKE_BLOCK_RETURNING(id)
 INVOKE_BLOCK_RETURNING(CGRect)
 INVOKE_BLOCK_RETURNING(CGPoint)
 
-#define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## InvokeBlock; break
+#define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## _invoke; break
 
 
 @implementation JSBlock
@@ -197,17 +206,17 @@ INVOKE_BLOCK_RETURNING(CGPoint)
                 
             case '{':
                 if (strcmp(type, "{CGRect={CGPoint=dd}{CGSize=dd}}") == 0) {
-                    _invoke = (IMP)CGRectInvokeBlock;
+                    _invoke = (IMP)CGRect_invoke;
                     break;
                 } else if (strcmp(type, "{CGPoint=dd}") == 0) {
-                    _invoke = (IMP)CGPointInvokeBlock;
+                    _invoke = (IMP)CGPoint_invoke;
                     break;
                 } else {
                     NSLog(@"generic structures not handled yet");
                 }
                 break;
             default:
-                _invoke = (IMP)InvokeBlock;
+                _invoke = (IMP)invoke;
         }
         _function = function;
     }
