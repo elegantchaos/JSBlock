@@ -17,11 +17,19 @@ import JavaScriptCore
     public override init() {
         var classDefinition : JSClassDefinition = JSClassDefinition()
         
+//        classDefinition.initialize = { (context: JSContextRef?, object: JSObjectRef?) in
+//            _ = withUnsafeMutablePointer(to: &Moccaccino.globalContext, {
+//                JSObjectSetPrivate(object, $0)
+//            })
+//        }
+//
         classDefinition.getProperty = { (context: JSContextRef?, object: JSObjectRef?, propertyName: JSStringRef?, exception: UnsafeMutablePointer<JSValueRef?>?) in
             let name = JSStringCopyCFString(kCFAllocatorDefault, propertyName) as String
             if (name != "Object") {
                 if let objcClass : AnyObject = NSClassFromString(name) {
-                    if let value = JSValue(object: objcClass, in: Moccaccino.globalContext) {
+                    let data = JSObjectGetPrivate(object)
+                    let context = Unmanaged<JSContext>.fromOpaque(data!).takeUnretainedValue()
+                    if let value = JSValue(object: objcClass, in: context) {
                         return value.jsValueRef;
                     }
                 }
@@ -34,6 +42,12 @@ import JavaScriptCore
         let globalContext = JSGlobalContextCreate(classInstance)
         self.context = JSContext(jsGlobalContextRef: globalContext)
         Moccaccino.globalContext = context
+        let global = JSContextGetGlobalObject(globalContext)
+//        _ = withUnsafeMutablePointer(to: &context, {
+//            JSObjectSetPrivate(global, $0)
+//        })
+        JSObjectSetPrivate(global, UnsafeMutableRawPointer(Unmanaged.passUnretained(context).toOpaque()))
+
     }
     
     @objc public func test() {
