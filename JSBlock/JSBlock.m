@@ -105,14 +105,14 @@ static JSValue* jsInvoke(JSValue* function, NSMethodSignature* signature, va_lis
  Helpers to convert the return value to the correct type.
  */
 
-static inline double return_double(JSValue* value) { return value.toDouble; }
-static inline int return_int(JSValue* value) { return value.toInt32; }
-static inline uint return_uint(JSValue* value) { return value.toUInt32; }
-static inline char return_char(JSValue* value) { return value.toInt32; }
-static inline bool return_bool(JSValue* value) { return value.toBool; }
-static inline id return_id(JSValue* value) { return value.toObject; }
-static inline CGRect return_CGRect(JSValue* value) { return value.toRect; }
-static inline CGPoint return_CGPoint(JSValue* value) { return value.toPoint; }
+static double return_double(JSValue* value) { return value.toDouble; }
+static int return_int(JSValue* value) { return value.toInt32; }
+static uint return_uint(JSValue* value) { return value.toUInt32; }
+static char return_char(JSValue* value) { return value.toInt32; }
+static bool return_bool(JSValue* value) { return value.toBool; }
+static id return_id(JSValue* value) { return value.toObject; }
+static CGRect return_CGRect(JSValue* value) { return value.toRect; }
+static CGPoint return_CGPoint(JSValue* value) { return value.toPoint; }
 
 
 /**
@@ -130,7 +130,7 @@ static inline CGPoint return_CGPoint(JSValue* value) { return value.toPoint; }
  
  */
 
-static void invoke(JSBlock* block, ...) {
+static void void_invoke(JSBlock* block, ...) {
     va_list args;
     va_start(args, block);
     jsInvoke(block.function, block.signature, args);
@@ -144,19 +144,20 @@ va_start(args, block); \
 JSValue* jsResult = jsInvoke(block.function, block.signature, args); \
 va_end(args); \
 return return_ ## _type_(jsResult); \
-} \
+}
 
-INVOKE_BLOCK_RETURNING(double)
-INVOKE_BLOCK_RETURNING(int)
-INVOKE_BLOCK_RETURNING(uint)
-INVOKE_BLOCK_RETURNING(char)
-INVOKE_BLOCK_RETURNING(bool)
-INVOKE_BLOCK_RETURNING(id)
-INVOKE_BLOCK_RETURNING(CGRect)
-INVOKE_BLOCK_RETURNING(CGPoint)
+INVOKE_BLOCK_RETURNING(double);
+INVOKE_BLOCK_RETURNING(int);
+INVOKE_BLOCK_RETURNING(uint);
+INVOKE_BLOCK_RETURNING(char);
+INVOKE_BLOCK_RETURNING(bool);
+INVOKE_BLOCK_RETURNING(id);
+INVOKE_BLOCK_RETURNING(CGRect);
+INVOKE_BLOCK_RETURNING(CGPoint);
 
 #define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## _invoke; break
 
+// MARK: - Object
 
 @implementation JSBlock
 {
@@ -216,7 +217,7 @@ INVOKE_BLOCK_RETURNING(CGPoint)
                 }
                 break;
             default:
-                _invoke = (IMP)invoke;
+                _invoke = (IMP)void_invoke;
         }
         _function = function;
     }
