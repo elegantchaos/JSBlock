@@ -146,7 +146,7 @@ static NSRange return_NSRange(JSValue* value) { return value.toRange; }
  where the return value is supposed to go (registers, stack, or a bit of both) and how big it is.
  We could then execute a few assembler instructions to put it into the right place.
  
- This might allow us to have a single invocation function to handle all cases.
+ This should allow us to have a single invocation function to handle all cases.
  
  */
 
