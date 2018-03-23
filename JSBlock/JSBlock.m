@@ -86,6 +86,14 @@ static JSValue* jsInvoke(JSValue* function, NSMethodSignature* signature, va_lis
             CGPoint value = va_arg(args, CGPoint);
             [jsArgs addObject:[JSValue valueWithPoint:value inContext:context]];
             NSLog(@"arg #%ld %@", n, NSStringFromPoint(value));
+        } else if ([type isEqualToString:@"{CGSize=dd}"]) {
+            CGSize value = va_arg(args, CGSize);
+            [jsArgs addObject:[JSValue valueWithSize:value inContext:context]];
+            NSLog(@"arg #%ld %@", n, NSStringFromSize(value));
+        } else if ([type isEqualToString:@"{_NSRange=QQ}"]) {
+            NSRange value = va_arg(args, NSRange);
+            [jsArgs addObject:[JSValue valueWithRange:value inContext:context]];
+            NSLog(@"arg #%ld %@", n, NSStringFromRange(value));
         } else if ([type characterAtIndex:0] == '@') {
             id value = va_arg(args, id);
             [jsArgs addObject:[JSValue valueWithObject:value inContext:context]];
@@ -113,6 +121,8 @@ static bool return_bool(JSValue* value) { return value.toBool; }
 static id return_id(JSValue* value) { return value.toObject; }
 static CGRect return_CGRect(JSValue* value) { return value.toRect; }
 static CGPoint return_CGPoint(JSValue* value) { return value.toPoint; }
+static CGSize return_CGSize(JSValue* value) { return value.toSize; }
+static NSRange return_NSRange(JSValue* value) { return value.toRange; }
 
 
 /**
@@ -154,6 +164,8 @@ INVOKE_BLOCK_RETURNING(bool);
 INVOKE_BLOCK_RETURNING(id);
 INVOKE_BLOCK_RETURNING(CGRect);
 INVOKE_BLOCK_RETURNING(CGPoint);
+INVOKE_BLOCK_RETURNING(CGSize);
+INVOKE_BLOCK_RETURNING(NSRange);
 
 #define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## _invoke; break
 
@@ -211,6 +223,12 @@ INVOKE_BLOCK_RETURNING(CGPoint);
                     break;
                 } else if (strcmp(type, "{CGPoint=dd}") == 0) {
                     _invoke = (IMP)CGPoint_invoke;
+                    break;
+                } else if (strcmp(type, "{CGSize=dd}") == 0) {
+                    _invoke = (IMP)CGSize_invoke;
+                    break;
+                } else if (strcmp(type, "{_NSRange=QQ}") == 0) {
+                    _invoke = (IMP)NSRange_invoke;
                     break;
                 } else {
                     NSLog(@"generic structures not handled yet");

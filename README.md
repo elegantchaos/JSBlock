@@ -51,14 +51,18 @@ The code is rough at the moment, un-optimised, hacks all over the place, and gen
 
 Fairly obviously, the JavaScript context that your function was defined in still has to exist at the point that the block is called.
 
-Memory management may be a little sketchy at this point. I know that JavaScriptCore itself originally had an implementation of something like
+Memory management may be a little sketchy. I know that JavaScriptCore itself originally had an implementation of something like
 this, but [it was removed](https://bugs.webkit.org/show_bug.cgi?id=107836) due to problems with the memory management. I suspect that was
 because they were trying to solve every case in a way which we're not doing here, but it's still a cause for caution.
 
-The proof of concept handles accepting and returning simple types - int, double, bool - and objects, including strings. It doesn't yet deal with complex arguments such as structures. In think in theory that support for them should be possible.
+The proof of concept handles accepting and returning some basic types: int, double, bool, string, CGRect, CGPoint, CGSize, NSRange and arbitrary objects. 
 
-I might try to add some of them, but it involves a bit of work and I did this mostly to show that it can be done. I'm not really looking
-for work right now but if you're desperate enough to get this working that you want to pay me to do it, I might be persuadable, so by
+It doesn't yet deal with the general case of structures. In theory that support for them should be possible, but it requires a bit more hackery, particularly when
+they are returned from the block.
+
+I might try to add some of them, but it involves quite a bit of effort, I've got quite a few other distractions. and I did this mostly to show that it can be done! 
+
+I'm not really looking for paid work right now but if you're desperate enough to get this working that you want to pay me to do it, I might be persuadable, so by
 all means get in touch.
 
 

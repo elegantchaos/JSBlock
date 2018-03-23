@@ -58,6 +58,8 @@ DECLARE_CALL_TYPE(bool)
 DECLARE_CALL_TYPE(id)
 DECLARE_CALL_TYPE(CGRect)
 DECLARE_CALL_TYPE(CGPoint)
+DECLARE_CALL_TYPE(CGSize)
+DECLARE_CALL_TYPE(NSRange)
 
 @end
 
@@ -92,6 +94,8 @@ DEFINE_CALL_METHOD(bool)
 DEFINE_CALL_METHOD(id)
 DEFINE_CALL_METHOD(CGRect)
 DEFINE_CALL_METHOD(CGPoint)
+DEFINE_CALL_METHOD(CGSize)
+DEFINE_CALL_METHOD(NSRange)
 
 @end
 
@@ -195,6 +199,20 @@ do { \
     TEST(CGPoint, return ({x:x.x + y.x, y:x.y + y.y}), ({x:1, y:2}), ({x:4, y:8}));
     [self.context evaluateScript:@"console.log(result.x);"];
     [self.context evaluateScript:@"console.log(result.y);"];
+    XCTAssertEqualObjects(self.trimmedBuffer, @"[object Object]\n5\n10");
+}
+
+- (void)testSize {
+    TEST(CGSize, return ({width:x.width + y.width, height:x.height+y.height}), ({width:10, height:10}), ({width:20, height:20}));
+    [self.context evaluateScript:@"console.log(result.width);"];
+    [self.context evaluateScript:@"console.log(result.height);"];
+    XCTAssertEqualObjects(self.trimmedBuffer, @"[object Object]\n30\n30");
+}
+
+- (void)testRange {
+    TEST(NSRange, return ({location:x.location + y.location, length:x.length + y.length}), ({location:1, length:2}), ({location:4, length:8}));
+    [self.context evaluateScript:@"console.log(result.location);"];
+    [self.context evaluateScript:@"console.log(result.length);"];
     XCTAssertEqualObjects(self.trimmedBuffer, @"[object Object]\n5\n10");
 }
 
