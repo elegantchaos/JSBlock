@@ -50,6 +50,8 @@ typedef void(^VoidBlock)(double d, int i, NSString* s);
 + (instancetype)exampleWithBlock:(id)block;
 - (void)callBlock:(double)d int:(int)i string:(NSString*)s;
 
+DECLARE_CALL_TYPE(NSInteger)
+DECLARE_CALL_TYPE(NSUInteger)
 DECLARE_CALL_TYPE(int)
 DECLARE_CALL_TYPE(uint)
 DECLARE_CALL_TYPE(double)
@@ -86,9 +88,11 @@ DECLARE_CALL_TYPE(NSRange)
     block(d, i, s);
 }
 
-DEFINE_CALL_METHOD(double)
+DEFINE_CALL_METHOD(NSInteger)
+DEFINE_CALL_METHOD(NSUInteger)
 DEFINE_CALL_METHOD(int)
 DEFINE_CALL_METHOD(uint)
+DEFINE_CALL_METHOD(double)
 DEFINE_CALL_METHOD(char)
 DEFINE_CALL_METHOD(bool)
 DEFINE_CALL_METHOD(id)
@@ -163,6 +167,16 @@ do { \
 - (void)testDouble {
     TEST(double, return x*y, 1.23, 4.0);
     XCTAssertEqualObjects(self.trimmedBuffer, @"4.92");
+}
+
+- (void)testNSInteger {
+    TEST(NSInteger, return x+y, -2, -4);
+    XCTAssertEqualObjects(self.trimmedBuffer, @"-6");
+}
+
+- (void)testNSUInteger {
+    TEST(NSUInteger, return x+y, 2, 4);
+    XCTAssertEqualObjects(self.trimmedBuffer, @"6");
 }
 
 - (void)testInt {

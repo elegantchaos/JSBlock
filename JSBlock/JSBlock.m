@@ -62,14 +62,22 @@ static JSValue* jsInvoke(JSValue* function, NSMethodSignature* signature, va_lis
             int value = va_arg(args, int);
             [jsArgs addObject:[JSValue valueWithInt32:value inContext:context]];
             NSLog(@"arg #%ld %d", n, value);
-        } else if ([type isEqualToString:@"d"]) {
-            double value = va_arg(args, double);
-            [jsArgs addObject:[JSValue valueWithDouble:value inContext:context]];
-            NSLog(@"arg #%ld %lf", n, value);
         } else if ([type isEqualToString:@"I"]) {
             uint value = va_arg(args, uint);
             [jsArgs addObject:[JSValue valueWithUInt32:value inContext:context]];
             NSLog(@"arg #%ld %u", n, value);
+        } else if ([type isEqualToString:@"q"]) {
+            NSInteger value = va_arg(args, NSInteger);
+            [jsArgs addObject:[JSValue valueWithObject:[NSNumber numberWithInteger:value] inContext:context]];
+            NSLog(@"arg #%ld %ld", n, value);
+        } else if ([type isEqualToString:@"Q"]) {
+            NSUInteger value = va_arg(args, NSUInteger);
+            [jsArgs addObject:[JSValue valueWithObject:[NSNumber numberWithUnsignedInteger:value] inContext:context]];
+            NSLog(@"arg #%ld %lu", n, value);
+        } else if ([type isEqualToString:@"d"]) {
+            double value = va_arg(args, double);
+            [jsArgs addObject:[JSValue valueWithDouble:value inContext:context]];
+            NSLog(@"arg #%ld %lf", n, value);
         } else if ([type isEqualToString:@"c"]) {
             char value = va_arg(args, int);
             [jsArgs addObject:[JSValue valueWithBool:value inContext:context]];
@@ -116,6 +124,8 @@ static JSValue* jsInvoke(JSValue* function, NSMethodSignature* signature, va_lis
 static double return_double(JSValue* value) { return value.toDouble; }
 static int return_int(JSValue* value) { return value.toInt32; }
 static uint return_uint(JSValue* value) { return value.toUInt32; }
+static NSInteger return_NSInteger(JSValue* value) { return value.toNumber.integerValue; }
+static NSUInteger return_NSUInteger(JSValue* value) { return value.toNumber.unsignedIntegerValue; }
 static char return_char(JSValue* value) { return value.toInt32; }
 static bool return_bool(JSValue* value) { return value.toBool; }
 static id return_id(JSValue* value) { return value.toObject; }
@@ -159,6 +169,8 @@ return return_ ## _type_(jsResult); \
 INVOKE_BLOCK_RETURNING(double);
 INVOKE_BLOCK_RETURNING(int);
 INVOKE_BLOCK_RETURNING(uint);
+INVOKE_BLOCK_RETURNING(NSInteger);
+INVOKE_BLOCK_RETURNING(NSUInteger);
 INVOKE_BLOCK_RETURNING(char);
 INVOKE_BLOCK_RETURNING(bool);
 INVOKE_BLOCK_RETURNING(id);
@@ -213,6 +225,8 @@ INVOKE_BLOCK_RETURNING(NSRange);
             INVOKE_CASE('d', double);
             INVOKE_CASE('i', int);
             INVOKE_CASE('I', uint);
+            INVOKE_CASE('q', NSInteger);
+            INVOKE_CASE('Q', NSUInteger);
             INVOKE_CASE('c', char);
             INVOKE_CASE('B', bool);
             INVOKE_CASE('@', id);
@@ -231,7 +245,7 @@ INVOKE_BLOCK_RETURNING(NSRange);
                     _invoke = (IMP)NSRange_invoke;
                     break;
                 } else {
-                    NSLog(@"generic structures not handled yet");
+                    NSLog(@"returning generic structures not handled yet");
                 }
                 break;
             default:
