@@ -8,44 +8,35 @@
 import Cocoa
 import JavaScriptCore
 
+
 @objc public class Moccaccino : NSObject {
     @objc public var context : JSContext
-
+    
+    static var globalContext : JSContext? = nil
+    
     public override init() {
         var classDefinition : JSClassDefinition = JSClassDefinition()
+        
+        classDefinition.getProperty = { (context: JSContextRef?, object: JSObjectRef?, propertyName: JSStringRef?, exception: UnsafeMutablePointer<JSValueRef?>?) in
+            let name = JSStringCopyCFString(kCFAllocatorDefault, propertyName) as String
+            if (name != "Object") {
+                if let objcClass : AnyObject = NSClassFromString(name) {
+                    if let value = JSValue(object: objcClass, in: Moccaccino.globalContext) {
+                        return value.jsValueRef;
+                    }
+                }
+            }
+            
+            return nil
+        }
+        
         let classInstance = JSClassCreate(&classDefinition)
         let globalContext = JSGlobalContextCreate(classInstance)
         self.context = JSContext(jsGlobalContextRef: globalContext)
+        Moccaccino.globalContext = context
     }
     
     @objc public func test() {
         
     }
 }
-//
-//JSContext* globalContext = nil;
-//
-//JSValueRef GlobalGetProperty(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
-//    NSString *name = (NSString *)CFBridgingRelease(JSStringCopyCFString(kCFAllocatorDefault, propertyName));
-//    if (![name isEqualToString:@"Object"]) {
-//        Class class = NSClassFromString(name);
-//        if (class) {
-//            JSValue* value = [JSValue valueWithObject:class inContext:globalContext];
-//            return value.JSValueRef;
-//        }
-//    }
-//
-//    return NULL;
-//}
-//
-//
-//JSContext* ContextWithCustomGlobalClass() {
-//    JSClassDefinition globalClass;
-//    memset(&globalClass, 0, sizeof(globalClass));
-//    globalClass.getProperty = GlobalGetProperty;
-//
-//    JSClassRef class = JSClassCreate(&globalClass);
-//    JSGlobalContextRef context = JSGlobalContextCreate(class);
-//    globalContext =  [JSContext contextWithJSGlobalContextRef:context]; // this needs to be a lookup table
-//    return globalContext;
-//}
