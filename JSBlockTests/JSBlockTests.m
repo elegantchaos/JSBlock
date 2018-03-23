@@ -11,8 +11,9 @@
 
 @import XCTest;
 @import JavaScriptCore;
+@import Moccaccino;
 
-#include <JSBlock/JSBlock.h>
+#import <JSBlock/JSBlock.h>
 
 #define QUOTE(...) #__VA_ARGS__
 
@@ -103,6 +104,33 @@ DEFINE_CALL_METHOD(NSRange)
 
 @end
 
+JSContext* globalContext = nil;
+
+JSValueRef GlobalGetProperty(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception) {
+    NSString *name = (NSString *)CFBridgingRelease(JSStringCopyCFString(kCFAllocatorDefault, propertyName));
+    if (![name isEqualToString:@"Object"]) {
+        Class class = NSClassFromString(name);
+        if (class) {
+            JSValue* value = [JSValue valueWithObject:class inContext:globalContext];
+            return value.JSValueRef;
+        }
+    }
+    
+    return NULL;
+}
+
+
+JSContext* ContextWithCustomGlobalClass() {
+    JSClassDefinition globalClass;
+    memset(&globalClass, 0, sizeof(globalClass));
+    globalClass.getProperty = GlobalGetProperty;
+
+    JSClassRef class = JSClassCreate(&globalClass);
+    JSGlobalContextRef context = JSGlobalContextCreate(class);
+    globalContext =  [JSContext contextWithJSGlobalContextRef:context]; // this needs to be a lookup table
+    return globalContext;
+}
+
 // MARK: - Testing
 
 /**
@@ -130,6 +158,7 @@ do { \
 } while(0)
 
 @interface JSBlockTests : XCTestCase
+@property (strong, nonatomic) Moccaccino* engine;
 @property (strong, nonatomic) JSContext* context;
 @property (strong, nonatomic) NSMutableString* buffer;
 @end
@@ -138,11 +167,13 @@ do { \
 
 - (void)setUp {
     // javascript context to run tests in
-    JSContext* context = [JSContext new];
+    Moccaccino* engine = [Moccaccino new];
+    [engine test];
+    JSContext* context = engine.context;
     
-    // expose JSBlock and ExampleAPI
-    context[@"JSBlock"] = [JSBlock class];
-    context[@"ExampleAPI"] = [ExampleAPI class];
+//    // expose JSBlock and ExampleAPI
+//    context[@"JSBlock"] = [JSBlock class];
+//    context[@"ExampleAPI"] = [ExampleAPI class];
     
     // log any exceptions
     context.exceptionHandler = ^(JSContext* context, JSValue* exception) {
@@ -156,12 +187,17 @@ do { \
         [buffer appendFormat:@"%@\n", value.toString];
     };
     
+    self.engine = engine;
     self.context = context;
     self.buffer = buffer;
 }
 
 - (NSString*)trimmedBuffer {
     return [_buffer stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
+- (void)testCall {
+    [self.context evaluateScript:@"console.log(NSString);"];
 }
 
 - (void)testDouble {
