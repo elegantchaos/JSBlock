@@ -12,24 +12,15 @@ import JavaScriptCore
 @objc public class Moccaccino : NSObject {
     @objc public var context : JSContext
     
-    static var globalContext : JSContext? = nil
-    
     public override init() {
         var classDefinition : JSClassDefinition = JSClassDefinition()
-        
-//        classDefinition.initialize = { (context: JSContextRef?, object: JSObjectRef?) in
-//            _ = withUnsafeMutablePointer(to: &Moccaccino.globalContext, {
-//                JSObjectSetPrivate(object, $0)
-//            })
-//        }
-//
+
         classDefinition.getProperty = { (context: JSContextRef?, object: JSObjectRef?, propertyName: JSStringRef?, exception: UnsafeMutablePointer<JSValueRef?>?) in
             let name = JSStringCopyCFString(kCFAllocatorDefault, propertyName) as String
             if (name != "Object") {
                 if let objcClass : AnyObject = NSClassFromString(name) {
-                    let data = JSObjectGetPrivate(object)
-                    let context = Unmanaged<JSContext>.fromOpaque(data!).takeUnretainedValue()
-                    if let value = JSValue(object: objcClass, in: context) {
+                    let moccaccino = Unmanaged<Moccaccino>.fromOpaque(JSObjectGetPrivate(object)!).takeUnretainedValue()
+                    if let value = JSValue(object: objcClass, in: moccaccino.context) {
                         return value.jsValueRef;
                     }
                 }
@@ -41,13 +32,12 @@ import JavaScriptCore
         let classInstance = JSClassCreate(&classDefinition)
         let globalContext = JSGlobalContextCreate(classInstance)
         self.context = JSContext(jsGlobalContextRef: globalContext)
-        Moccaccino.globalContext = context
-        let global = JSContextGetGlobalObject(globalContext)
-//        _ = withUnsafeMutablePointer(to: &context, {
-//            JSObjectSetPrivate(global, $0)
-//        })
-        JSObjectSetPrivate(global, UnsafeMutableRawPointer(Unmanaged.passUnretained(context).toOpaque()))
 
+        super.init()
+
+        // store reference to self as the private data for the global object, so that we can retrieve it in callbacks
+        let global = JSContextGetGlobalObject(globalContext)
+        JSObjectSetPrivate(global, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
     }
     
     @objc public func test() {
