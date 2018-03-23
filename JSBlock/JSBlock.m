@@ -13,6 +13,8 @@
 
 #import <objc/message.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 /**
  Internal block structures.
  
@@ -23,7 +25,7 @@ struct BlockDescriptor
 {
     unsigned long reserved;
     unsigned long size;
-    void *rest[1];
+    void* _Nullable rest[1];
 };
 
 struct Block
@@ -208,9 +210,6 @@ INVOKE_BLOCK_RETURNING(NSRange);
     return [[self alloc] initWithSignature:signature.UTF8String function:function];
 }
 
-- (double)returnResult {
-    return 7.67;
-}
 
 - (instancetype)initWithSignature:(const char*)signature function:(JSValue*)function {
     self = [super init];
@@ -267,3 +266,4 @@ INVOKE_BLOCK_RETURNING(NSRange);
 
 @end
 
+NS_ASSUME_NONNULL_END

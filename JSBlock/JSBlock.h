@@ -6,6 +6,8 @@
 
 @import JavaScriptCore;
 
+NS_ASSUME_NONNULL_BEGIN
+
 @protocol JSBlockExports<JSExport>
 + (instancetype)blockWithSignature:(NSString*)signature function:(JSValue*)function;
 @end
@@ -17,3 +19,5 @@
 + (const char*)signatureForBlock:(id)block;
 - (instancetype)initWithSignature:(const char*)signature function:(JSValue*)function;
 @end
+
+NS_ASSUME_NONNULL_END
