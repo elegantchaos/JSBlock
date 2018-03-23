@@ -43,133 +43,26 @@ enum {
     BLOCK_HAS_SIGNATURE =     (1 << 30),
 };
 
+// MARK: - Invocation
 
 
-#define INVOKE_METHOD_RETURNING(_type_) \
-- (_type_) _type_ ## InvokeWithSignature:(NSMethodSignature*)signature arguments:(va_list)args
+/**
+ We use a few different invocation functions - one for each return type - as a quick
+ and easy way of getting the compiler to put the right sized return value onto the stack.
+ 
+ This isn't scalable for generic structs, since there are an infinite variety of them and
+ we can't declare a function for every one.
+ 
+ In theory we ought to be able to use the signature plus knowledge of the ABI to figure out
+ where the return value is supposed to go (registers, stack, or a bit of both) and how big it is.
+ We could then execute a few assembler instructions to put it into the right place.
+ 
+ This might allow us to have a single invocation function to handle all cases.
+ 
+ */
 
-@interface JSBlock()
-INVOKE_METHOD_RETURNING(void);
-INVOKE_METHOD_RETURNING(double);
-INVOKE_METHOD_RETURNING(int);
-INVOKE_METHOD_RETURNING(uint);
-INVOKE_METHOD_RETURNING(char);
-INVOKE_METHOD_RETURNING(bool);
-INVOKE_METHOD_RETURNING(id);
-INVOKE_METHOD_RETURNING(CGRect);
-INVOKE_METHOD_RETURNING(CGPoint);
-@end
-
-
-static void InvokeBlock(JSBlock* block, ...) {
-    va_list args;
-    va_start(args, block);
-    [block voidInvokeWithSignature:block.signature arguments:args];
-    va_end(args);
-}
-
-#define INVOKE_BLOCK_RETURNING(_type_) \
-static _type_ _type_ ## InvokeBlock(JSBlock* block, ...) { \
-_type_ result; \
-memset(&result, 0, sizeof(result)); \
-va_list args; \
-va_start(args, block); \
-result = [block _type_ ## InvokeWithSignature:block.signature arguments:args]; \
-va_end(args); \
-\
-return result; \
-} \
-
-INVOKE_BLOCK_RETURNING(double)
-INVOKE_BLOCK_RETURNING(int)
-INVOKE_BLOCK_RETURNING(uint)
-INVOKE_BLOCK_RETURNING(char)
-INVOKE_BLOCK_RETURNING(bool)
-INVOKE_BLOCK_RETURNING(id)
-INVOKE_BLOCK_RETURNING(CGRect)
-INVOKE_BLOCK_RETURNING(CGPoint)
-
-#define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## InvokeBlock; break
-
-
-@implementation JSBlock
-{
-    int _flags;
-    int _reserved;
-    IMP _invoke;
-    struct BlockDescriptor *_descriptor;
-    JSValue* _function;
-}
-
-+ (const char*)signatureForBlock:(id)blockObj {
-    struct Block *block = (__bridge void * )blockObj;
-    struct BlockDescriptor *descriptor = block->descriptor;
-    
-    assert(block->flags & BLOCK_HAS_SIGNATURE);
-    
-    int index = 0;
-    if(block->flags & BLOCK_HAS_COPY_DISPOSE)
-        index += 2;
-    
-    return descriptor->rest[index];
-}
-
-+ (instancetype)blockWithSignature:(NSString*)signature function:(JSValue*)function {
-    return [[self alloc] initWithSignature:signature.UTF8String function:function];
-}
-
-- (double)returnResult {
-    return 7.67;
-}
-
-- (instancetype)initWithSignature:(const char*)signature function:(JSValue*)function {
-    self = [super init];
-    if (self) {
-        _flags = BLOCK_HAS_SIGNATURE;
-        _descriptor = calloc(1, sizeof(struct BlockDescriptor));
-        _descriptor->size = class_getInstanceSize([self class]);
-        _descriptor->rest[0] = (void *) signature;
-        _signature = [NSMethodSignature signatureWithObjCTypes:signature];
-        const char* type = _signature.methodReturnType;
-        switch (type[0]) {
-                INVOKE_CASE('d', double);
-                INVOKE_CASE('i', int);
-                INVOKE_CASE('I', uint);
-                INVOKE_CASE('c', char);
-                INVOKE_CASE('B', bool);
-                INVOKE_CASE('@', id);
-//                INVOKE_CASE('{', CGRect);
-                
-            case '{':
-                if (strcmp(type, "{CGRect={CGPoint=dd}{CGSize=dd}}") == 0) {
-                    _invoke = (IMP)CGRectInvokeBlock;
-                    break;
-                } else if (strcmp(type, "{CGPoint=dd}") == 0) {
-                    _invoke = (IMP)CGPointInvokeBlock;
-                    break;
-                } else {
-                    NSLog(@"generic structures not handled yet");
-                }
-                break;
-            default:
-                _invoke = (IMP)InvokeBlock;
-        }
-        _function = function;
-    }
-    
-    return self;
-}
-
-- (void)dealloc {
-    free(_descriptor);
-}
-
-- (id)copyWithZone:(nullable NSZone*)zone {
-    return self;
-}
-
-- (JSValue*)_invokeWithSignature:(NSMethodSignature*)signature arguments:(va_list)args {
-    JSContext* context = _function.context;
+static JSValue* invoke(JSValue* function, NSMethodSignature* signature, va_list args) {
+    JSContext* context = function.context;
     NSUInteger count = [signature numberOfArguments];
     NSMutableArray* jsArgs = [NSMutableArray new];
     for (NSUInteger n = 1; n < count; ++n) {
@@ -213,55 +106,121 @@ INVOKE_BLOCK_RETURNING(CGPoint)
     }
     
     
-    JSValue* result = [_function callWithArguments:jsArgs];
+    JSValue* result = [function callWithArguments:jsArgs];
     return result;
 }
 
-- (void)voidInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    if (result && !result.isNull) {
-        NSLog(@"Unexpected result: %@", result);
+
+static inline double returnAsdouble(JSValue* value) { return value.toDouble; }
+static inline int returnAsint(JSValue* value) { return value.toInt32; }
+static inline uint returnAsuint(JSValue* value) { return value.toUInt32; }
+static inline char returnAschar(JSValue* value) { return value.toInt32; }
+static inline bool returnAsbool(JSValue* value) { return value.toBool; }
+static inline id returnAsid(JSValue* value) { return value.toObject; }
+static inline CGRect returnAsCGRect(JSValue* value) { return value.toRect; }
+static inline CGPoint returnAsCGPoint(JSValue* value) { return value.toPoint; }
+
+
+static void InvokeBlock(JSBlock* block, ...) {
+    va_list args;
+    va_start(args, block);
+    invoke(block.function, block.signature, args);
+    va_end(args);
+}
+
+#define INVOKE_BLOCK_RETURNING(_type_) \
+static _type_ _type_ ## InvokeBlock(JSBlock* block, ...) { \
+va_list args; \
+va_start(args, block); \
+JSValue* jsResult = invoke(block.function, block.signature, args); \
+va_end(args); \
+return returnAs ## _type_(jsResult); \
+} \
+
+INVOKE_BLOCK_RETURNING(double)
+INVOKE_BLOCK_RETURNING(int)
+INVOKE_BLOCK_RETURNING(uint)
+INVOKE_BLOCK_RETURNING(char)
+INVOKE_BLOCK_RETURNING(bool)
+INVOKE_BLOCK_RETURNING(id)
+INVOKE_BLOCK_RETURNING(CGRect)
+INVOKE_BLOCK_RETURNING(CGPoint)
+
+#define INVOKE_CASE(_char_, _type_) case _char_: _invoke = (IMP) _type_ ## InvokeBlock; break
+
+
+@implementation JSBlock
+{
+    int _flags;
+    int _reserved;
+    IMP _invoke;
+    struct BlockDescriptor *_descriptor;
+}
+
++ (const char*)signatureForBlock:(id)blockObj {
+    struct Block *block = (__bridge void * )blockObj;
+    struct BlockDescriptor *descriptor = block->descriptor;
+    
+    assert(block->flags & BLOCK_HAS_SIGNATURE);
+    
+    int index = 0;
+    if(block->flags & BLOCK_HAS_COPY_DISPOSE)
+        index += 2;
+    
+    return descriptor->rest[index];
+}
+
++ (instancetype)blockWithSignature:(NSString*)signature function:(JSValue*)function {
+    return [[self alloc] initWithSignature:signature.UTF8String function:function];
+}
+
+- (double)returnResult {
+    return 7.67;
+}
+
+- (instancetype)initWithSignature:(const char*)signature function:(JSValue*)function {
+    self = [super init];
+    if (self) {
+        _flags = BLOCK_HAS_SIGNATURE;
+        _descriptor = calloc(1, sizeof(struct BlockDescriptor));
+        _descriptor->size = class_getInstanceSize([self class]);
+        _descriptor->rest[0] = (void *) signature;
+        _signature = [NSMethodSignature signatureWithObjCTypes:signature];
+        const char* type = _signature.methodReturnType;
+        switch (type[0]) {
+            INVOKE_CASE('d', double);
+            INVOKE_CASE('i', int);
+            INVOKE_CASE('I', uint);
+            INVOKE_CASE('c', char);
+            INVOKE_CASE('B', bool);
+            INVOKE_CASE('@', id);
+                
+            case '{':
+                if (strcmp(type, "{CGRect={CGPoint=dd}{CGSize=dd}}") == 0) {
+                    _invoke = (IMP)CGRectInvokeBlock;
+                    break;
+                } else if (strcmp(type, "{CGPoint=dd}") == 0) {
+                    _invoke = (IMP)CGPointInvokeBlock;
+                    break;
+                } else {
+                    NSLog(@"generic structures not handled yet");
+                }
+                break;
+            default:
+                _invoke = (IMP)InvokeBlock;
+        }
+        _function = function;
     }
+    
+    return self;
 }
 
-- (double)doubleInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toDouble;
+- (void)dealloc {
+    free(_descriptor);
 }
 
-- (int)intInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toInt32;
-}
-
-- (uint)uintInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toUInt32;
-}
-
-- (char)charInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toInt32;
-}
-
-- (bool)boolInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toBool;
-}
-
-- (id)idInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toObject;
-}
-
-- (CGRect)CGRectInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toRect;
-}
-
-- (CGPoint)CGPointInvokeWithSignature:(NSMethodSignature *)signature arguments:(va_list)args {
-    JSValue* result = [self _invokeWithSignature:signature arguments:args];
-    return result.toPoint;
+- (id)copyWithZone:(nullable NSZone*)zone {
+    return self;
 }
 
 @end

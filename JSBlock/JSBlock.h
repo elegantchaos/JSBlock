@@ -11,6 +11,7 @@
 @end
 
 @interface JSBlock : NSObject<JSBlockExports, NSCopying>
+@property (strong, nonatomic, readonly) JSValue* function;
 @property (strong, nonatomic, readonly) NSMethodSignature* signature;
 
 + (const char*)signatureForBlock:(id)block;

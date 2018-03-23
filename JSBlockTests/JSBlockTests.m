@@ -4,6 +4,11 @@
 //  For licensing terms, see http://elegantchaos.com/license/liberal/.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+/**
+ The code in here looks a bit scary, but 90% of it is just dedicated to setting up
+ an example API and a set of unit tests.
+ */
+
 @import XCTest;
 @import JavaScriptCore;
 
