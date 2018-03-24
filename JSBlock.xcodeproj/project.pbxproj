@@ -57,7 +57,6 @@
 		22D5361A2065803000899F63 /* Moccaccino.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Moccaccino.swift; path = ../Moccaccino/Moccaccino.swift; sourceTree = "<group>"; };
 		22D5361C2065807700899F63 /* JSBlock-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "JSBlock-Bridging-Header.h"; sourceTree = "<group>"; };
 		22D53671206599B100899F63 /* Moccaccino.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Moccaccino.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		22D53673206599B100899F63 /* Moccaccino.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Moccaccino.h; path = ../Moccaccino/Moccaccino.h; sourceTree = "<group>"; };
 		22D53674206599B100899F63 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../Moccaccino/Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -118,11 +117,9 @@
 			isa = PBXGroup;
 			children = (
 				22D5361A2065803000899F63 /* Moccaccino.swift */,
-				22D53673206599B100899F63 /* Moccaccino.h */,
 				22D53674206599B100899F63 /* Info.plist */,
 			);
-			name = Moccaccino;
-			path = MoccaccinoFramework;
+			path = Moccaccino;
 			sourceTree = "<group>";
 		};
 		OBJ_14 /* Products */ = {

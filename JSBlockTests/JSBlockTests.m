@@ -167,7 +167,14 @@ do { \
 }
 
 - (void)testCall {
-    [self.context evaluateScript:@"console.log(NSString);"];
+    [self.context evaluateScript:@QUOTE(
+                                        var s = NSApplication;
+                                        var s2 = NSApplication();
+                                        s.test();
+                                        var p = s.prototype;
+                                        p.test2 = function() { console.log("blah2"); };
+                                        s.test2();
+                                        )];
 }
 
 - (void)testDouble {

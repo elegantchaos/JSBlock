@@ -51,6 +51,41 @@
                BlueprintName = "JSBlockTests"
                ReferencedContainer = "container:JSBlock.xcodeproj">
             </BuildableReference>
+            <SkippedTests>
+               <Test
+                  Identifier = "JSBlockTests/testBool">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testDouble">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testInt">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testNSInteger">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testNSUInteger">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testPoint">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testRange">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testRect">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testSize">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testString">
+               </Test>
+               <Test
+                  Identifier = "JSBlockTests/testUInt">
+               </Test>
+            </SkippedTests>
          </TestableReference>
       </Testables>
       <MacroExpansion>
