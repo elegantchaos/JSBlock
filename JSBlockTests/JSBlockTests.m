@@ -142,7 +142,6 @@ do { \
 - (void)setUp {
     // javascript context to run tests in
     Moccaccino* engine = [Moccaccino new];
-    [engine test];
     JSContext* context = engine.context;
     
     // log any exceptions
@@ -169,11 +168,7 @@ do { \
 - (void)testCall {
     [self.context evaluateScript:@QUOTE(
                                         var s = NSApplication;
-                                        var s2 = NSApplication();
                                         s.test();
-                                        var p = s.prototype;
-                                        p.test2 = function() { console.log("blah2"); };
-                                        s.test2();
                                         )];
 }
 

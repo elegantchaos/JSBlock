@@ -19,39 +19,18 @@ import JavaScriptCore
     @objc public var context : JSContext
     
     let classesToIgnore = Set(["Object"])
-    
+    let populatedPropertyName = JSStringCreateWithCFString("populatedByMoccaccino" as CFString)
+
     public override init() {
         var classDefinition : JSClassDefinition = JSClassDefinition()
 
         classDefinition.getProperty = { (context: JSContextRef?, object: JSObjectRef?, propertyName: JSStringRef?, exception: UnsafeMutablePointer<JSValueRef?>?) in
             let moccaccino = Unmanaged<Moccaccino>.fromOpaque(JSObjectGetPrivate(object)!).takeUnretainedValue()
+            assert(moccaccino.context.jsGlobalContextRef == JSContextGetGlobalContext(context))
             let name = JSStringCopyCFString(kCFAllocatorDefault, propertyName) as String
-            if (!moccaccino.classesToIgnore.contains(name)) {
-                if let objcClass : AnyClass = NSClassFromString(name) {
-                    if let value = JSValue(object: objcClass, in: moccaccino.context) {
-                        if !class_conformsToProtocol(objcClass, JSExport.self) {
-                            
-                            if let prototype = value.forProperty("prototype") {
-                                let name = JSStringCreateWithCFString("test" as CFString)
-//                                let method = JSObjectMakeFunctionWithCallback(moccaccino.context.jsGlobalContextRef, name, { (context, function, this, argumentCount, arguments, exception) -> JSValueRef? in
-//                                    print("blah")
-//                                    return JSValueMakeNull(context)
-//                                })
-                                let testFunc : @convention(block) () -> () = {
-                                    print("blah")
-                                    
-                                }
-//                                prototype.setValue(JSValue(jsValueRef: method, in: moccaccino.context), forProperty: "test")
-                                prototype.setValue(JSValue(object: testFunc, in: moccaccino.context), forProperty: "test")
-                                print("\(prototype)")
-                                JSObjectSetPrototype(moccaccino.context.jsGlobalContextRef, value.jsValueRef, prototype.jsValueRef)
-                            }
-                        }
-                        return value.jsValueRef;
-                    }
-                }
+            if let object = object {
+                return moccaccino.getProperty(object: object, property: name, exception: exception)
             }
-            
             return nil
         }
         
@@ -65,8 +44,45 @@ import JavaScriptCore
         let global = JSContextGetGlobalObject(globalContext)
         JSObjectSetPrivate(global, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
     }
-    
-    @objc public func test() {
+
+    func getProperty(object: JSObjectRef, property: String, exception: UnsafeMutablePointer<JSValueRef?>?) -> JSValueRef? {
+        if (!classesToIgnore.contains(property)) {
+            if let objcClass : AnyClass = NSClassFromString(property) {
+                return boxed(class: objcClass, exception: exception)
+            }
+        }
         
+        return nil
+    }
+    
+    func prototypeIsPopulated(prototype : JSObjectRef, context: JSContextRef, exception: UnsafeMutablePointer<JSValueRef?>?) -> Bool {
+        let value = JSObjectGetProperty(context, prototype, populatedPropertyName, exception)
+        return JSValueToBoolean(context, value)
+    }
+    
+    func populatePrototype(prototype: JSObjectRef, class: AnyClass, context: JSContextRef, exception: UnsafeMutablePointer<JSValueRef?>?) {
+        JSObjectSetProperty(context, prototype, populatedPropertyName, JSValueMakeBoolean(context, true), JSPropertyAttributes(kJSPropertyAttributeReadOnly), exception)
+        let name = JSStringCreateWithCFString("test" as CFString)
+        let method = JSObjectMakeFunctionWithCallback(context, name, { (context, function, this, argumentCount, arguments, exception) -> JSValueRef? in
+            print("blah")
+            return JSValueMakeNull(context)
+        })
+        JSObjectSetProperty(context, prototype, name, method, JSPropertyAttributes(kJSPropertyAttributeNone), exception)
+    }
+    
+    func boxed(class: AnyClass, exception: UnsafeMutablePointer<JSValueRef?>?) -> JSValueRef? {
+        let context = self.context.jsGlobalContextRef!
+        if let value = JSValue(object: `class`, in: self.context) {
+            if !class_conformsToProtocol(`class`, JSExport.self) {
+                let classObject = value.jsValueRef as JSObjectRef
+                if let proto = JSObjectGetPrototype(context, classObject) {
+                    if (!prototypeIsPopulated(prototype: proto, context: context, exception: exception)) {
+                        populatePrototype(prototype: proto, class: `class`, context: context, exception: exception)
+                    }
+                }
+            }
+            return value.jsValueRef;
+        }
+        return nil
     }
 }
